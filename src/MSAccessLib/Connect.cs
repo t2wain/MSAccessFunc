@@ -66,5 +66,20 @@ namespace MSAccessLib
                 c.Append(string.Format("DATABASE={0};", filename));
             return c.ToString();
         }
+
+        public static string GetConnectString(this Database db)
+        {
+            var cnnstr = "";
+            if (db.Name.EndsWith(".accdb") || db.Name.EndsWith(".mdb"))
+            {
+                cnnstr = db.Connect;
+                cnnstr = string.IsNullOrWhiteSpace(cnnstr) ? Connect.MSAccess(db.Name, "") : cnnstr;
+                cnnstr = cnnstr.StartsWith("MS Access") ? cnnstr : "MS Access" + cnnstr;
+            }
+            else cnnstr = db.Connect;
+
+            return cnnstr;
+        }
+
     }
 }

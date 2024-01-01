@@ -14,9 +14,9 @@ namespace MSAccessApp
             //OpenMSAccess(f1);
             //OpenExcel();
             //OpenODBC();
-            //PrintAccessTables(f2);
+            //PrintAccessTables(f1);
             //CreateMSAccess(f3);
-            //LinkTables(f2);
+            //LinkTables(f1);
             ImportTables(f1);
         }
 
@@ -27,7 +27,7 @@ namespace MSAccessApp
             try
             {
                 db = t.OpenAccessDB(fileName);
-                t.PrintDatabase(db, false);
+                db?.Print(true);
             }
             finally { db?.Close(); }
         }
@@ -39,7 +39,7 @@ namespace MSAccessApp
             try
             {
                 db = t.OpenExcel(@"c:\dev\SampleTable.xlsx");
-                t.PrintDatabase(db, true);
+                db?.Print(true);
             }
             finally { db?.Close(); }
         }
@@ -51,7 +51,7 @@ namespace MSAccessApp
             try
             {
                 db = t.OpenODBC(@"RoutingDB");
-                //t.PrintDatabase(db, true);
+                db?.Print(true);
             }
             finally { db?.Close(); }
         }
@@ -74,7 +74,7 @@ namespace MSAccessApp
             try
             {
                 db = t.OpenAccessDB(fileName);
-                t.PrintDatabaseTables(db, true);
+                db?.Print(true);
             }
             finally { db?.Close(); }
         }
@@ -92,7 +92,7 @@ namespace MSAccessApp
             {
                 destDB = t.CreateMSAccess(testDb);
                 srcDB = t.OpenAccessDB(fileName);
-                t.LinkTables(destDB!, srcDB!, t => t.Attributes == 0 || t.Attributes == 1073741824);
+                destDB?.LinkToTables(srcDB!, t => t.Attributes == 0 || t.Attributes == 1073741824);
             }
             finally
             {
@@ -104,7 +104,7 @@ namespace MSAccessApp
         protected void ImportTables(string fileName)
         {
             using var t = new DB();
-            string testDb = @"c:\dev\TestLinkDB.accdb";
+            string testDb = @"c:\dev\TestImportDB.accdb";
             if (File.Exists(testDb))
                 File.Delete(testDb);
             Database? destDB = null;
@@ -113,7 +113,7 @@ namespace MSAccessApp
             {
                 destDB = t.CreateMSAccess(testDb);
                 srcDB = t.OpenAccessDB(fileName);
-                t.ImportTables(destDB!, srcDB!, t => t.Attributes == 0 || t.Attributes == 1073741824);
+                destDB?.ImportTables(srcDB!, t => t.Attributes == 0 || t.Attributes == 1073741824);
             }
             finally
             {
