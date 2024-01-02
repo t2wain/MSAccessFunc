@@ -45,11 +45,11 @@ namespace MSAccessApp
             //OpenExcel();
             //OpenDSN(@"c:\dev\KBRSoftwareDBInfo.txt");
             //PrintAccessTables(f6);
-            PrintAccessTables2(f5, f7);
+            //PrintAccessTables2(f5, f7);
             //CreateMSAccess(f3);
             //LinkTables(f1);
             //ImportTables(f1);
-            //LinkDsnTables();
+            LinkDsnTables();
         }
 
         protected void OpenMSAccess(string fileName)

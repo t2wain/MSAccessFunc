@@ -47,6 +47,9 @@ namespace MSAccessLib
             dt.SourceTableName =
                 string.IsNullOrEmpty(externalTable.SourceTableName) ? externalTable.Name : externalTable.SourceTableName;
 
+            if (cnnstr.Contains("PWD="))
+                dt.Attributes = (int)TableDefAttributeEnum.dbAttachSavePWD;
+
             if (externalTable.Attributes == TBL_ATTR_LOCAL)
                 dt.Connect = cnnstr;
             else if (externalTable.Attributes == TBL_ATTR_LINK)
