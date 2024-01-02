@@ -11,9 +11,11 @@ namespace MSAccessLib
             return string.Format("ODBC;FILEDSN={0}", dsnFileName);
         }
 
-        public static string DSN(string dsnName)
+        public static string DSN(string dsnName, string pwd = "")
         {
-            return string.Format("ODBC;DSN={0}", dsnName);
+            if (string.IsNullOrWhiteSpace(pwd))
+                return string.Format("ODBC;DSN={0};", dsnName);
+            else return string.Format("ODBC;DSN={0};Pwd={1}", dsnName, pwd);
         }
 
         public static string Oracle(string server, string uid, string pwd)

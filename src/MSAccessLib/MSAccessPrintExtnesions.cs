@@ -12,8 +12,9 @@ namespace MSAccessLib
         const int TBL_ATTR_LOCAL = 0;
         const int TBL_ATTR_LINK = 1073741824;
 
-        public static void Print(this DBEngine eng, TextWriter wr)
+        public static void Print(this DBEngine eng, Context ctx)
         {
+            var wr = ctx.Writer;
             wr.WriteLine("Engine:");
             //TryGetValue(eng, "DefaultType", out var dt); // WorkspaceTypeEnum
             //TryGetValue(eng, "Errors", out var errs);
@@ -27,7 +28,7 @@ namespace MSAccessLib
 
             wr.WriteLine("Engine properties:");
             if (props != null)
-                (props as Properties).Print(wr);
+                (props as Properties).Print(ctx);
         }
 
         #region  Database
@@ -35,37 +36,62 @@ namespace MSAccessLib
         /// <summary>
         /// Show information about the database including tables and queries. 
         /// </summary>
-        public static void Print(this Database db, TextWriter wr, 
-            bool hideEmptyProperty = false, Predicate<TableDef>? tblFilter = null, ILogger? logger = null)
+        public static void PrintAll(this Database db, Context ctx)
         {
+            var wr = ctx.Writer;
+            var logger = ctx.Logger;
+
             wr.WriteLine("Database:\n");
 
             // Show database properties
+            logger.LogInformation("Print database properties");
+            db.Properties.Print(ctx, "\t");
+
+            if (ctx.IsMSAccessDB)
+            {
+                // Show database containers
+                wr.WriteLine("Containers:\n");
+                logger.LogInformation("Print database containers");
+                db.Containers.Print(ctx, "");
+            }
+
+            if (db.TableDefs.Count > 0)
+            {
+                // Show tables
+                wr.WriteLine("Tables:\n");
+                logger.LogInformation("Print database tables");
+                db.TableDefs.Print(ctx, "");
+            }
+
+            if (db.QueryDefs.Count > 0)
+            {
+                // Show queries
+                wr.WriteLine("Queries:\n");
+                logger.LogInformation("Print database queries");
+                db.QueryDefs.Print(ctx, "");
+            }
+        }
+
+        public static void Print(this Database db, Context ctx, string tabs = "")
+        {
+            var wr = ctx.Writer;
+            var logger = ctx.Logger;
+
+            wr.WriteLine(tabs + "Database:\n");
+
+            // Show database properties
             logger?.LogInformation("Print database properties");
-            db.Properties.Print(wr, "\t", hideEmptyProperty);
-
-            // Show database containers
-            wr.WriteLine("Containers:\n");
-            logger?.LogInformation("Print database containers");
-            db.Containers.Print(wr, "", hideEmptyProperty, logger);
-
-            // Show tables
-            wr.WriteLine("Tables:\n");
-            logger?.LogInformation("Print database tables");
-            db.TableDefs.Print(wr, "", hideEmptyProperty, tblFilter, logger);
-
-            // Show queries
-            wr.WriteLine("Queries:\n");
-            logger?.LogInformation("Print database queries");
-            db.QueryDefs.Print(wr, "", hideEmptyProperty);
+            db.Properties.Print(ctx, tabs + "\t");
         }
 
         /// <summary>
         /// Show information about the database Containers
         /// </summary>
-        public static void Print(this Containers containers, TextWriter wr, 
-            string tabs = "", bool hideEmptyProperty = false, ILogger? logger = null)
+        public static void Print(this Containers containers, Context ctx, string tabs = "")
         {
+            var wr = ctx.Writer;
+            var logger = ctx.Logger;
+
             int total = containers.Count;
             if (total < 1) return;
             int cnt = 0;
@@ -73,14 +99,14 @@ namespace MSAccessLib
             foreach (Container? c in containers)
             {
                 if (c == null) break;
-                logger?.LogInformation(string.Format("Print {0} of {1} container: {2}", ++cnt, total, c.Name));
+                logger.LogInformation(string.Format("Print {0} of {1} container: {2}", ++cnt, total, c.Name));
                 wr.WriteLine(string.Format(tabs + "{0}  - C", c.Name));
 
                 // Show properties of container
-                c.Properties.Print(wr, tb, hideEmptyProperty);
+                c.Properties.Print(ctx, tb);
 
                 // Show properties of documents
-                c.Documents.Print(wr, tb, hideEmptyProperty, logger);
+                c.Documents.Print(ctx, tb);
             }
             wr.WriteLine();
         }
@@ -88,12 +114,14 @@ namespace MSAccessLib
         /// <summary>
         /// Show information about the Documents in a Container
         /// </summary>
-        public static void Print(this Documents documents, TextWriter wr, 
-            string tabs = "", bool hideEmptyProperty = false, ILogger? logger = null)
+        public static void Print(this Documents documents, Context ctx, string tabs = "")
         {
+            var wr = ctx.Writer;
+            var logger = ctx.Logger;
+
             int total = documents.Count;
             if (total < 1) return;
-            logger?.LogInformation(string.Format("Print {0} documents", total));
+            logger.LogInformation(string.Format("Print {0} documents", total));
             wr.WriteLine(tabs + "Documents:\n");
             string tb = tabs + "\t";
             foreach (Document d in documents)
@@ -110,7 +138,7 @@ namespace MSAccessLib
                 //TryGetValue(d, "Properties", out var p);
                 //TryGetValue(d, "UserName", out var u);
                 wr.WriteLine(string.Format(tabs + "{0} - D", d.Name));
-                d.Properties.Print(wr, tb, hideEmptyProperty);
+                d.Properties.Print(ctx, tb);
             }
         }
 
@@ -118,57 +146,70 @@ namespace MSAccessLib
 
         #region TableDef
 
-        public static void Print(this TableDefs tables, TextWriter wr, string tabs = "", 
-            bool hideEmptyProperty = false, Predicate<TableDef>? tblFilter = null, ILogger? logger = null)
+        public static void Print(this TableDefs tables, Context ctx, string tabs = "")
         {
+            var wr = ctx.Writer;
+            var logger = ctx.Logger;
+            var f = ctx.TableFilter;
+
             int cnt = 0;
             int total = tables.Count;
-            var f = tblFilter ??
-                (t => t.Attributes == TBL_ATTR_LOCAL || t.Attributes == TBL_ATTR_LINK);
             foreach (TableDef t in tables)
             {
+                var att = t.Attributes;
+                var n = t.Name;
                 if (!f(t))
                 {
-                    logger?.LogInformation(string.Format("Skip {0} of {1} table: {2}",
-                        ++cnt, total, t.Name));
+                    logger.LogInformation(string.Format("Skip {0} of {1} table: {2}",
+                        ++cnt, total, n));
                     continue;
                 }
-                logger?.LogInformation(string.Format("Print {0} of {1} table: {2}", ++cnt, total, t.Name));
-                t.Print(wr, tabs, hideEmptyProperty, logger);
+                logger.LogInformation(string.Format("Print {0} of {1} table: {2}", ++cnt, total, n));
+                t.Print(ctx, tabs);
             }
         }
 
-        public static void Print(this TableDef table, TextWriter wr,
-            string tabs = "", bool hideEmptyProperty = false, ILogger? logger = null)
+        public static void Print(this TableDef table, Context ctx, string tabs = "")
         {
+            var wr = ctx.Writer;
+            var logger = ctx.Logger;
+
             var tb = tabs + "\t";
             wr.WriteLine(string.Format(tabs + "{0} - T", table.Name));
-            table.Properties.Print(wr, tb, hideEmptyProperty);
+            table.Properties.Print(ctx, tb);
+
             wr.WriteLine(tb + "Table Fields:\n");
-            logger?.LogInformation(string.Format("Print {0} table fields", table.Fields.Count));
-            table.Fields.Print(wr, " - TF", tb, hideEmptyProperty);
-            wr.WriteLine(tb + "Table Indexes:\n");
-            logger?.LogInformation(string.Format("Print {0} table indexes", table.Indexes.Count));
-            table.Indexes.Print(wr, tb, hideEmptyProperty);
+            logger.LogInformation(string.Format("Print {0} table fields", table.Fields.Count));
+            table.Fields.Print(ctx, " - TF", tb);
+
+            TryGetValue(table.Indexes, "Count", out var cnt);
+            if (cnt != null && cnt > 0)
+            {
+                wr.WriteLine(tb + "Table Indexes:\n");
+                logger.LogInformation(string.Format("Print {0} table indexes", cnt as object));
+                table.Indexes.Print(ctx, tb);
+            }
         }
 
         #endregion
 
         #region Index property
 
-        public static void Print(this Indexes indexes, TextWriter wr, string tabs = "", bool hideEmptyProperty = false)
+        public static void Print(this Indexes indexes, Context ctx, string tabs = "")
         {
             foreach (DAO.Index i in indexes)
             {
-                i.Print(wr, tabs, hideEmptyProperty);
+                i.Print(ctx, tabs);
             }
         }
 
-        public static void Print(this DAO.Index index, TextWriter wr, string tabs = "", bool hideEmptyProperty = false)
+        public static void Print(this DAO.Index index, Context ctx, string tabs = "")
         {
+            var wr = ctx.Writer;
+
             wr.WriteLine(string.Format(tabs + "{0} - I", index.Name));
             string tb = tabs + "\t";
-            index.Properties.Print(wr, tb, hideEmptyProperty);
+            index.Properties.Print(ctx, tb);
 
             // Show fields in index
             var fir = index.IndexFields();
@@ -191,17 +232,29 @@ namespace MSAccessLib
 
         #region Querydef
 
-        public static void Print(this QueryDefs qdefs, TextWriter wr, string tabs = "", bool hideEmptyProperty = false)
+        public static void Print(this QueryDefs qdefs, Context ctx, string tabs = "")
         {
-            if (qdefs.Count < 1) return;
+            var wr = ctx.Writer;
+            var logger = ctx.Logger;
+            var f = ctx.QueryFilter;
+
+            int total = qdefs.Count;
+            if (total < 1) return;
+            int cnt = 0;
             foreach (QueryDef q in qdefs)
             {
-                q.Print(wr, tabs, hideEmptyProperty);
+                if (!f(q))
+                {
+                    logger.LogInformation(string.Format("Skip {0} of {1} queries: {2}",
+                        ++cnt, total, q.Name));
+                    continue;
+                }
+                q.Print(ctx, tabs);
             };
             wr.WriteLine();
         }
 
-        public static void Print(this QueryDef qdef, TextWriter wr, string tabs = "", bool hideEmptyProperty = false)
+        public static void Print(this QueryDef qdef, Context ctx, string tabs = "")
         {
             //TryGetValue(q, "CacheSize", out var cs);
             //TryGetValue(q, "Connect", out var cn);
@@ -221,8 +274,9 @@ namespace MSAccessLib
             //TryGetValue(q, "StillExecuting", out var se);
             //TryGetValue(q, "Type", out var tp);
             //TryGetValue(q, "Updatable", out var up);
+            var wr = ctx.Writer;
             wr.WriteLine(string.Format(tabs + "{0} - Q", qdef.Name));
-            qdef.Properties.Print(wr, tabs + "\t", hideEmptyProperty);
+            qdef.Properties.Print(ctx, tabs + "\t");
             var tb = tabs + "\t";
             wr.WriteLine(tb + "Query Fields:\n");
             foreach (Field f in qdef.Fields)
@@ -239,20 +293,22 @@ namespace MSAccessLib
 
         #region Field property
 
-        public static void Print(this Fields fields, TextWriter wr, 
-            string suffix = "", string tabs = "", bool hideEmptyProperty = false)
+        public static void Print(this Fields fields, Context ctx, 
+            string suffix = "", string tabs = "")
         {
+            var wr = ctx.Writer;
             if (fields.Count == 0) return;
             foreach (Field f in fields)
             {
-                f.Print(wr, suffix, tabs, hideEmptyProperty);
+                f.Print(ctx, suffix, tabs);
             }
             wr.WriteLine();
         }
 
-        public static void Print(this Field field, TextWriter wr, 
-            string suffix = "", string tabs = "", bool hideEmptyProperty = false)
+        public static void Print(this Field field, Context ctx, 
+            string suffix = "", string tabs = "")
         {
+            var wr = ctx.Writer;
             wr.WriteLine(string.Format(tabs + "{0}{1}", field.Name, suffix));
             string tb = tabs + "\t";
             //PrintProperty(f, "AllowZeroLength", "", tb);
@@ -276,15 +332,19 @@ namespace MSAccessLib
             //PrintProperty(f, "Value", "", tb);
             //PrintProperty(f, "VisibleValue", "", tb);
             //wr.WriteLine();
-            field.Properties.Print(wr, tb, hideEmptyProperty);
+            if (!ctx.HideFieldProperty)
+                field.Properties.Print(ctx, tb);
         }
 
         #endregion
 
         #region Property
 
-        public static void Print(this Properties props, TextWriter wr, string tabs = "\t", bool hideEmptyProperty = false)
+        public static void Print(this Properties props, Context ctx, string tabs = "\t")
         {
+            var wr = ctx.Writer;
+            var hideEmptyProperty = ctx.HideEmptyProperty;
+
             if (props == null || props?.Count < 1) return;
             foreach (Property prop in props!)
             {
@@ -326,6 +386,23 @@ namespace MSAccessLib
             {
                 value = obj.GetType().InvokeMember(propName,
                     BindingFlags.Instance | BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.InvokeMethod,
+                    Type.DefaultBinder, obj, paramValues);
+                return true;
+            }
+            catch (Exception err)
+            {
+                var msg = err.Message;
+                return false;
+            }
+        }
+
+        public static bool TrySetValue(object obj, string propName, out dynamic? value, object[]? paramValues = null)
+        {
+            value = null;
+            try
+            {
+                value = obj.GetType().InvokeMember(propName,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty,
                     Type.DefaultBinder, obj, paramValues);
                 return true;
             }
