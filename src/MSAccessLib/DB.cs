@@ -1,7 +1,4 @@
 ﻿using Microsoft.Office.Interop.Access.Dao;
-using System.Collections;
-using System.Reflection;
-using DAO = Microsoft.Office.Interop.Access.Dao;
 
 namespace MSAccessLib
 {
@@ -11,9 +8,6 @@ namespace MSAccessLib
 
         DBEngine _eng = null!;
         Workspace _wk = null!;
-
-        const int TBL_ATTR_LOCAL = 0;
-        const int TBL_ATTR_LINK = 1073741824;
 
         public DB()
         {

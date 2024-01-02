@@ -1,5 +1,5 @@
-﻿using Microsoft.Office.Interop.Access.Dao;
-using System.Collections;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Office.Interop.Access.Dao;
 using DAO = Microsoft.Office.Interop.Access.Dao;
 
 namespace MSAccessLib
@@ -11,18 +11,29 @@ namespace MSAccessLib
 
         #region Link tables
 
-        public static void LinkToTables(this Database db, Database externalDb, Predicate<TableDef> filter)
+        public static void LinkToTables(this Database db, Database externalDb, Predicate<TableDef> filter, ILogger? logger = null)
         {
+            var tables = externalDb.TableDefs;
+            int cnt = 0;
+            int total = tables.Count;
+            logger?.LogInformation(string.Format("Linking total number of tables: {0}", total));
             var cnnstr = externalDb.GetConnectString();
-            foreach (TableDef st in externalDb.TableDefs)
+            foreach (TableDef st in tables)
             {
-                if (!filter(st)) continue;
-                db.LinkToTable(st, externalDb);
+                if (!filter(st))
+                {
+                    logger?.LogInformation(string.Format("Skipping {0} of {1} table: {2}",
+                        ++cnt, total, st.Name));
+                    continue;
+                }
+                logger?.LogInformation(string.Format("Linking {0} of {1} table", ++cnt, total));
+                db.LinkToTable(st, externalDb, logger);
             }
         }
 
-        public static void LinkToTable(this Database db, TableDef externalTable, Database externalDb)
+        public static void LinkToTable(this Database db, TableDef externalTable, Database externalDb, ILogger? logger = null)
         {
+            logger?.LogInformation(string.Format("Linking table: {0}", externalTable.Name));
             var cnnstr = externalDb.GetConnectString();
             var dt = db.CreateTableDef();
             dt.Name = externalTable.Name;
@@ -40,37 +51,43 @@ namespace MSAccessLib
 
         #region Import tables
 
-        public static void ImportTables(this Database db, Database externalDb, Predicate<TableDef> filter)
+        public static void ImportTables(this Database db, Database externalDb, Predicate<TableDef> filter, ILogger? logger = null)
         {
-            var srcCnnString = externalDb.GetConnectString();
-            foreach (TableDef st in externalDb.TableDefs)
+            var tables = externalDb.TableDefs;
+            int cnt = 0;
+            int total = tables.Count;
+            logger?.LogInformation(string.Format("Importing total number of tables: {0}", total));
+            foreach (TableDef st in tables)
             {
-                if (!filter(st)) continue;
-
-                // create table and duplicate data
-                var sql = string.Format("select * into [{0}] from [{1}].[{0}]", st.Name, srcCnnString);
-                db.Execute(sql, RecordsetOptionEnum.dbFailOnError);
-
-                // duplicate indexes
-                db.TableDefs.Refresh();
-                CopyIndexes(db.TableDefs[st.Name], st);
+                if (!filter(st))
+                {
+                    logger?.LogInformation(string.Format("Skipping {0} of {1} table: {2}", 
+                        ++cnt, total, st.Name));
+                    continue;
+                }
+                logger?.LogInformation(string.Format("Importing {0} of {1} table", ++cnt, total));
+                db.ImportTable(st, externalDb, logger);
             }
         }
 
-        public static void ImportTables(this Database db, TableDef externalTable, Database externalDb)
+        public static void ImportTable(this Database db, TableDef externalTable, Database externalDb, ILogger? logger = null)
         {
             var srcCnnString = externalDb.GetConnectString();
             // create table and duplicate data
             var sql = string.Format("select * into [{0}] from [{1}].[{0}]", externalTable.Name, srcCnnString);
+            logger?.LogInformation(string.Format("Importing table: {0}", externalTable.Name));
             db.Execute(sql, RecordsetOptionEnum.dbFailOnError);
 
-            // duplicate indexes
             db.TableDefs.Refresh();
             var dt = db.TableDefs[externalTable.Name];
-            dt.CopyIndexes(externalTable);
+            logger?.LogInformation(string.Format("Number of imported records: {0}", dt.RecordCount));
+
+            // duplicate indexes
+            logger?.LogInformation(string.Format("Copying indexes for table: {0}", externalTable.Name));
+            dt.CopyIndexes(externalTable, logger);
         }
 
-        public static void CopyIndexes(this TableDef dt, TableDef externalTable)
+        public static void CopyIndexes(this TableDef dt, TableDef externalTable, ILogger? logger = null)
         {
             foreach (DAO.Index si in externalTable.Indexes)
             {
@@ -78,12 +95,14 @@ namespace MSAccessLib
                 if (fir == null) continue;
 
                 var di = dt.CreateIndex(si.Name);
+                logger?.LogTrace("Create index: {0}", si.Name);
                 dynamic fields = di.Fields;
                 while (fir.MoveNext())
                 {
                     var sf = (fir.Current as Field)!;
                     var df = di.CreateField(sf.Name);
                     fields.Append(df);
+                    logger?.LogTrace(string.Format("Append index column: {0}", df.Name));
                 }
 
                 di.Primary = si.Primary;
@@ -92,6 +111,10 @@ namespace MSAccessLib
                 di.Required = si.Required;
                 di.Clustered = si.Clustered;
                 dt.Indexes.Append(di);
+                if (di.Primary)
+                    logger?.LogInformation(string.Format("Append primary index: {0}", di.Name));
+                else
+                    logger?.LogTrace(string.Format("Append table index: {0}", di.Name));
             }
         }
 
