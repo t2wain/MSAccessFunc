@@ -16,6 +16,7 @@ namespace MSAccessLib
             HideFieldProperty = false;
             IsMSAccessDB = false;
             GetLinkTableName = t => t.Name;
+            IsSavePwdWithLinkTable = false;
         }
 
         public Predicate<TableDef> TableFilter { get; set; } = null!;
@@ -26,5 +27,6 @@ namespace MSAccessLib
         public bool HideFieldProperty { get; set; }
         public bool IsMSAccessDB { get; set; }
         public Func<TableDef, string> GetLinkTableName { get; set; }
+        public bool IsSavePwdWithLinkTable { get; set; }
     }
 }

@@ -175,11 +175,12 @@ namespace MSAccessApp
         protected void LinkDsnTables()
         {
             var logger = _factory.CreateLogger("Linking");
-            var ctx = _ctx with 
-            { 
+            var ctx = _ctx with
+            {
                 Logger = logger,
                 TableFilter = t => t.Name.StartsWith("VW.C_"),
-                GetLinkTableName = t => t.Name.Replace("VW.", "") 
+                GetLinkTableName = t => t.Name.Replace("VW.", ""),
+                IsSavePwdWithLinkTable = true
             };
 
             using var t = new DB();
