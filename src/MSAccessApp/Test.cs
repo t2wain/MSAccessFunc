@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Office.Interop.Access.Dao;
 using MSAccessLib;
@@ -7,15 +8,17 @@ namespace MSAccessApp
 {
     public class Test
     {
-        ILoggerFactory _factory = null!;
+        //ILoggerFactory _factory = null!;
         Context _ctx = null!;
+        private readonly IServiceProvider _provider;
 
-        public Test()
+        public Test(IServiceProvider provider)
         {
-            _factory = LoggerFactory.Create(builder => {
-                builder.AddConsole();
-                //builder.SetMinimumLevel(LogLevel.None);
-            });
+            this._provider = provider;
+            //_factory = LoggerFactory.Create(builder => {
+            //    builder.AddConsole();
+            //    //builder.SetMinimumLevel(LogLevel.None);
+            //});
             _ctx = new Context()
             {
                 //TableFilter = t => new int[] { 0, 1073741824, 536870912, 537001984 }.Contains(t.Attributes),
@@ -45,11 +48,11 @@ namespace MSAccessApp
             //OpenExcel();
             //OpenDSN(@"c:\dev\KBRSoftwareDBInfo.txt");
             //PrintAccessTables(f6);
-            //PrintAccessTables2(f5, f7);
+            PrintAccessTables2(f5, f7);
             //CreateMSAccess(f3);
             //LinkTables(f1);
             //ImportTables(f1);
-            LinkDsnTables();
+            //LinkDsnTables();
         }
 
         protected void OpenMSAccess(string fileName)
@@ -78,7 +81,7 @@ namespace MSAccessApp
 
         protected void OpenDSN(string outFileName)
         {
-            var logger = _factory.CreateLogger("KBRSoftware");
+            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("KBRSoftware");
             using var t = new DB();
             Database? db = null;
             if (File.Exists(outFileName))
@@ -129,7 +132,7 @@ namespace MSAccessApp
 
         protected void PrintAccessTables2(string dbFileName, string outFileName)
         {
-            var logger = _factory.CreateLogger("DbInfo");
+            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInfo");
             using var t = new DB();
             Database? db = null;
             using var f = File.OpenWrite(outFileName);
@@ -150,7 +153,7 @@ namespace MSAccessApp
 
         protected void LinkTables(string fileName)
         {
-            var logger = _factory.CreateLogger("Linking");
+            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Linking");
             var ctx = _ctx with { Logger = logger };
 
             using var t = new DB();
@@ -174,7 +177,7 @@ namespace MSAccessApp
 
         protected void LinkDsnTables()
         {
-            var logger = _factory.CreateLogger("Linking");
+            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Linking");
             var ctx = _ctx with
             {
                 Logger = logger,
@@ -204,7 +207,7 @@ namespace MSAccessApp
 
         protected void ImportTables(string fileName)
         {
-            var logger = _factory.CreateLogger("Importing");
+            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Importing");
             var ctx = _ctx with { Logger = logger };
 
             using var t = new DB();
@@ -223,7 +226,6 @@ namespace MSAccessApp
             {
                 destDB?.Close();
                 srcDB?.Close();
-                _factory?.Dispose();
             }
         }
     }
