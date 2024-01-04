@@ -7,13 +7,13 @@ using MSAccessLib;
 
 namespace MSAccessApp
 {
-    public class Test
+    public class Examples
     {
         private readonly Context _ctx = null!;
         private readonly IServiceProvider _provider;
         private readonly IConfigurationSection _cfg;
 
-        public Test(IServiceProvider provider)
+        public Examples(IServiceProvider provider)
         {
             _provider = provider;
             _cfg = _provider.GetRequiredService<IConfigurationRoot>().GetSection("TestParams");

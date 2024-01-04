@@ -8,5 +8,5 @@ var provider = new ServiceCollection()
     .ConfigureServices(cfg)
     .BuildServiceProvider();
 
-var t = new Test(provider);
+var t = new Examples(provider);
 t.Run();
