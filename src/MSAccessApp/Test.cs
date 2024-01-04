@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Office.Interop.Access.Dao;
@@ -8,20 +9,16 @@ namespace MSAccessApp
 {
     public class Test
     {
-        //ILoggerFactory _factory = null!;
-        Context _ctx = null!;
+        private readonly Context _ctx = null!;
         private readonly IServiceProvider _provider;
+        private readonly IConfigurationSection _cfg;
 
         public Test(IServiceProvider provider)
         {
-            this._provider = provider;
-            //_factory = LoggerFactory.Create(builder => {
-            //    builder.AddConsole();
-            //    //builder.SetMinimumLevel(LogLevel.None);
-            //});
+            _provider = provider;
+            _cfg = _provider.GetRequiredService<IConfigurationRoot>().GetSection("TestParams");
             _ctx = new Context()
             {
-                //TableFilter = t => new int[] { 0, 1073741824, 536870912, 537001984 }.Contains(t.Attributes),
                 TableFilter = t => !new int[] { 
                     (int)TableDefAttributeEnum.dbHiddenObject,
                     (int)TableDefAttributeEnum.dbSystemObject,
@@ -36,136 +33,94 @@ namespace MSAccessApp
 
         public void Run()
         {
-            var f1 = @"c:\dev\Routing.accdb";
-            var f2 = @"c:\dev\RoutingLink.accdb";
-            var f3 = @"c:\dev\TestNewDB.accdb";
-            var f4 = @"c:\dev\RoutingInfo.txt";
-            var f5 = @"c:\dev\TestLinkDB.accdb";
-            var f6 = @"c:\dev\TestOdbcLink.accdb";
-            var f7 = @"c:\dev\TestLinkDBInfo.txt";
-            //OpenMSAccess(f2);
-            //OpenMSAccess(f1);
-            //OpenExcel();
-            //OpenDSN(@"c:\dev\KBRSoftwareDBInfo.txt");
-            //PrintAccessTables(f6);
-            PrintAccessTables2(f5, f7);
-            //CreateMSAccess(f3);
-            //LinkTables(f1);
-            //ImportTables(f1);
-            //LinkDsnTables();
-        }
+            int testNo = 9;
 
-        protected void OpenMSAccess(string fileName)
-        {
-            using var t = new DB();
-            Database? db = null;
-            try
+            var dsnName = _cfg["OdbcDsn"]!;
+            var dsnLinkDbFile = _cfg["OdbcMSAccessLinkFile"]!;
+            var dbFile = _cfg["MSAccessFile"]!;
+            var dbLinkFile = _cfg["MSAccessLinkFile"]!;
+            var dbImportFile = _cfg["MSAccessImportFile"]!;
+
+            switch (testNo)
             {
-                db = t.OpenAccessDB(fileName);
-                db?.PrintAll(_ctx);
+                case 0:
+                    // print db info of an ODBC db (using DSN) info to console
+                    PrintDSN(dsnName);
+                    break;
+                case 1:
+                    // print db info of an ODBC db (using DSN) info to file
+                    var dsnInfoFile = _cfg["OdbcDsnInfoFile"]!;
+                    PrintDSN(dsnName, dsnInfoFile);
+                    break;
+                case 2:
+                    // link tables of an ODBC db (using DSN) to an Access file
+                    LinkDsnTables(dsnName, dsnLinkDbFile);
+                    break;
+                case 3:
+                    // print db info to console of an Access db
+                    // having linked table from an ODBC db
+                    PrintAccess(dsnLinkDbFile);
+                    break;
+                case 4:
+                    // print db info to a file of an Access file
+                    // having linked table from an ODBC db
+                    var dsnLinkInfoFile = _cfg["OdbcMSAccessLinkInfoFile"]!;
+                    PrintAccess(dsnLinkDbFile, dsnLinkInfoFile);
+                    break;
+                case 5:
+                    // print db info of an Access db to console
+                    PrintAccess(dbFile);
+                    break;
+                case 6:
+                    // print db info of an Access db to file
+                    var dbFileInfo = _cfg.GetValue<string>("MSAccessInfoFile")!;
+                    PrintAccess(dbFile, dbFileInfo);
+                    break;
+                case 7:
+                    // link tables of an Access db to another Access db
+                    LinkAccessTables(dbFile, dbLinkFile);
+                    break;
+                case 8:
+                    // print db info of an Access db with linked tables to console
+                    PrintAccess(dbLinkFile);
+                    break;
+                case 9:
+                    // import tables from an Access db to another Access db
+                    ImportAccess(dbFile, dbImportFile);
+                    break;
             }
-            finally { db?.Close(); }
         }
 
-        protected void OpenExcel()
-        {
-            using var t = new DB();
-            Database? db = null;
-            try
-            {
-                db = t.OpenExcel(@"c:\dev\SampleTable.xlsx");
-                db?.PrintAll(_ctx);
-            }
-            finally { db?.Close(); }
-        }
+        #region Access DB
 
-        protected void OpenDSN(string outFileName)
-        {
-            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("KBRSoftware");
-            using var t = new DB();
-            Database? db = null;
-            if (File.Exists(outFileName))
-                File.Delete(outFileName);
-            using var f = File.Open(outFileName, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
-            using var wr = new StreamWriter(f);
-            var ctx = new Context()
-            {
-                TableFilter = t => t.Name.StartsWith("VW.C_SW_"),
-                QueryFilter = q => q.Name.StartsWith("VW.C_VW_SW_"),
-                Writer = wr,
-                Logger = logger,
-                HideEmptyProperty = true,
-                HideFieldProperty = true,
-                IsMSAccessDB = false
-            };
-            try
-            {
-                db = t.OpenODBC(Connect.DSN("KBRSofware PROD"));
-                db?.PrintAll(ctx);
-            }
-            finally { db?.Close(); }
-        }
-
-        protected void CreateMSAccess(string fileName)
-        {
-            using var t = new DB();
-            Database? db = null;
-            try
-            {
-                db = t.CreateMSAccess(fileName);
-            }
-            finally { db?.Close(); }
-        }
-
-        protected void PrintAccessTables(string fileName)
+        protected void PrintAccess(string dbFile, string dbInfoFile = "")
         {
             using var t = new DB();
             Database? db = null;
             var ctx = _ctx with { HideFieldProperty = true };
             try
             {
-                db = t.OpenAccessDB(fileName);
-                db?.PrintAll(ctx);
+                db = t.OpenAccessDB(dbFile);
+                PrintDB(db!, ctx, dbInfoFile);
             }
             finally { db?.Close(); }
         }
 
-        protected void PrintAccessTables2(string dbFileName, string outFileName)
+        protected void LinkAccessTables(string dbFile, string linkDbFile)
         {
-            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInfo");
             using var t = new DB();
-            Database? db = null;
-            using var f = File.OpenWrite(outFileName);
-            using var wr = new StreamWriter(f);
-            var ctx = _ctx with { Logger = logger, Writer = wr, };
-            try
-            {
-                db = t.OpenAccessDB(dbFileName);
-                db?.PrintAll(ctx);
-            }
-            finally { 
-                db?.Close();
-                wr.Flush();
-                wr.Close();
-                f.Close();
-            }
-        }
-
-        protected void LinkTables(string fileName)
-        {
-            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Linking");
-            var ctx = _ctx with { Logger = logger };
-
-            using var t = new DB();
-            string testDb = @"c:\dev\TestLinkDB.accdb";
-            if (File.Exists(testDb))
-                File.Delete(testDb);
+            if (File.Exists(linkDbFile))
+                File.Delete(linkDbFile);
             Database? destDB = null;
             Database? srcDB = null;
             try
             {
-                destDB = t.CreateMSAccess(testDb);
-                srcDB = t.OpenAccessDB(fileName);
+                destDB = t.CreateMSAccess(linkDbFile);
+                srcDB = t.OpenAccessDB(dbFile);
+                var ctx = _ctx with 
+                { 
+                    Logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Linking") 
+                };
                 destDB?.LinkToTables(srcDB!, ctx);
             }
             finally
@@ -175,27 +130,66 @@ namespace MSAccessApp
             }
         }
 
-        protected void LinkDsnTables()
+        protected void ImportAccess(string dbFile, string dbImportFile)
         {
-            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Linking");
+            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Importing");
+            var ctx = _ctx with { Logger = logger };
+
+            using var t = new DB();
+            Database? srcDB = null;
+            try
+            {
+                srcDB = t.OpenAccessDB(dbFile);
+                ImportTable(srcDB!, ctx, dbImportFile, t);
+            }
+            finally
+            {
+                srcDB?.Close();
+            }
+        }
+
+        #endregion
+
+        #region DSN
+
+        protected void PrintDSN(string dsnName, string dsnInfoFile = "")
+        {
+            using var t = new DB();
+            Database? db = null;
+
+            try
+            {
+                db = t.OpenODBC(Connect.DSN(dsnName));
+                var ctx = _ctx with
+                {
+                    TableFilter = t => t.Name.StartsWith("VW.C_SW_"),
+                    QueryFilter = q => q.Name.StartsWith("VW.C_VW_SW_"),
+                    IsMSAccessDB = false
+                };
+                PrintDB(db!, ctx, dsnInfoFile);
+            }
+            finally { db?.Close(); }
+        }
+
+        protected void LinkDsnTables(string dsnName, string dsnLinkDbFile)
+        {
             var ctx = _ctx with
             {
-                Logger = logger,
+                Logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("DSN Linking"),
                 TableFilter = t => t.Name.StartsWith("VW.C_"),
                 GetLinkTableName = t => t.Name.Replace("VW.", ""),
                 IsSavePwdWithLinkTable = true
             };
 
             using var t = new DB();
-            string testDb = @"c:\dev\TestLinkDB.accdb";
-            if (File.Exists(testDb))
-                File.Delete(testDb);
+            if (File.Exists(dsnLinkDbFile))
+                File.Delete(dsnLinkDbFile);
             Database? destDB = null;
             Database? srcDB = null;
             try
             {
-                destDB = t.CreateMSAccess(testDb);
-                srcDB = t.OpenODBC(Connect.DSN("KBRSofware PROD"));
+                destDB = t.CreateMSAccess(dsnLinkDbFile);
+                srcDB = t.OpenODBC(Connect.DSN(dsnName));
                 destDB?.LinkToTables(srcDB!, ctx);
             }
             finally
@@ -205,28 +199,47 @@ namespace MSAccessApp
             }
         }
 
-        protected void ImportTables(string fileName)
-        {
-            var logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("Importing");
-            var ctx = _ctx with { Logger = logger };
+        #endregion
 
-            using var t = new DB();
-            string testDb = @"c:\dev\TestImportDB.accdb";
-            if (File.Exists(testDb))
-                File.Delete(testDb);
+        #region Common
+
+        protected void ImportTable(Database srcDb, Context ctx, string dbImportFile, DB t)
+        {
+            if (File.Exists(dbImportFile))
+                File.Delete(dbImportFile);
             Database? destDB = null;
-            Database? srcDB = null;
             try
             {
-                destDB = t.CreateMSAccess(testDb);
-                srcDB = t.OpenAccessDB(fileName);
-                destDB?.ImportTables(srcDB!, ctx);
+                destDB = t.CreateMSAccess(dbImportFile);
+                destDB?.ImportTables(srcDb, ctx);
             }
             finally
             {
                 destDB?.Close();
-                srcDB?.Close();
             }
         }
+
+        protected void PrintDB(Database db, Context ctx, string dbInfoFile = "")
+        {
+            if (!string.IsNullOrEmpty(dbInfoFile))
+            {
+                if (File.Exists(dbInfoFile))
+                    File.Delete(dbInfoFile);
+                using var f = File.Open(dbInfoFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
+                using var wr = new StreamWriter(f);
+                ctx = ctx with
+                {
+                    Writer = wr,
+                    Logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("PrintDB")
+                };
+                db?.PrintAll(ctx);
+            }
+            else
+            {
+                db?.PrintAll(ctx);
+            }
+        }
+
+        #endregion
     }
 }
