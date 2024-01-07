@@ -13,15 +13,28 @@ namespace DAOCmdlets
         public string ConnectString { get; set; } = null!;
 
         [Parameter]
-        public ScriptBlock TableFilter { get; set; } = ScriptBlock.Create("$true");
+        public ScriptBlock? TableFilter { get; set; }
 
         [Parameter]
-        public ScriptBlock QueryFilter { get; set; } = ScriptBlock.Create("$true");
+        public ScriptBlock? QueryFilter { get; set; }
+
+        [Parameter]
+        public SwitchParameter HideEmptyProperty { get; set; }
+
+        [Parameter]
+        public SwitchParameter HideFieldProperty { get; set; }
 
         protected override void BeginProcessing()
         {
             _dbUtil = new DB();
-            _ctx = this.BuildContext(ConnectString, TableFilter, QueryFilter);
+            _ctx = this.BuildContext(TableFilter, QueryFilter) with
+            {
+                HideEmptyProperty = HideEmptyProperty,
+                HideFieldProperty = HideFieldProperty,
+                IsMSAccessDB =
+                    ConnectString.Contains(".accdb")
+                    || ConnectString.Contains(".mdb")
+            };
         }
 
         protected override void ProcessRecord()

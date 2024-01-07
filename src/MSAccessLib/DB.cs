@@ -46,8 +46,6 @@ namespace MSAccessLib
                     DatabaseTypeEnum.dbVersion150
                 );
 
-        #endregion
-
         public Database? OpenDBWithConnString(string cnnString, string pwd = "") => cnnString switch
             {
                 var c when c.StartsWith("ODBC;") => OpenODBC(c),
@@ -56,10 +54,32 @@ namespace MSAccessLib
                 _ => OpenDB("", cnnString)
             };
 
+        #endregion
+
         public void PrintDatabase(string cnnString, Context ctx)
         {
             var db = OpenDBWithConnString(cnnString);
             db?.PrintAll(ctx);
+        }
+
+        public void LinkTables(string srcCnnString, string destCnnString, Context ctx)
+        {
+            Database? srcDB = null;
+            Database? destDB = null;
+
+            try
+            {
+                destDB = OpenDBWithConnString(destCnnString);
+                srcDB = OpenDBWithConnString(srcCnnString);
+                destDB?.LinkToTables(srcDB!, ctx);
+            }
+            finally
+            {
+                srcDB?.Close();
+                destDB?.Close();
+                srcDB = null;
+                destDB = null;
+            }
         }
     }
 }

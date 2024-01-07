@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Office.Interop.Access.Dao;
-using System.Text.RegularExpressions;
 using DAO = Microsoft.Office.Interop.Access.Dao;
 
 namespace MSAccessLib
@@ -17,28 +16,30 @@ namespace MSAccessLib
             var logger = ctx.Logger;
             var filter = ctx.TableFilter;
 
-            var tables = externalDb.TableDefs;
+            var srcTables = externalDb.TableDefs;
+            var destTblNames = db.TableDefs.GetTableNames();
             int cnt = 0;
-            int total = tables.Count;
+            int total = srcTables.Count;
             logger.LogInformation(string.Format("Linking total number of tables: {0}", total));
             var cnnstr = externalDb.GetConnectString();
-            foreach (TableDef st in tables)
+            foreach (TableDef st in srcTables)
             {
-                if (!filter(st))
+                if (!filter(st) || destTblNames.Contains(ctx.GetNewTableName(st)))
                 {
                     logger.LogInformation(string.Format("Skipping {0} of {1} table: {2}",
                         ++cnt, total, st.Name));
                     continue;
                 }
                 logger.LogInformation(string.Format("Linking {0} of {1} table", ++cnt, total));
-                db.LinkToTable(st, externalDb, ctx);
+                var nt = db.LinkToTable(st, externalDb, ctx);
+                destTblNames.Add(nt.Name);
             }
         }
 
-        public static void LinkToTable(this Database db, TableDef externalTable, Database externalDb, Context ctx)
+        public static TableDef LinkToTable(this Database db, TableDef externalTable, Database externalDb, Context ctx)
         {
             var logger = ctx.Logger;
-            var gn = ctx.GetLinkTableName;
+            var gn = ctx.GetNewTableName;
 
             logger.LogInformation(string.Format("Linking table: {0}", externalTable.Name));
             var cnnstr = externalDb.GetConnectString();
@@ -57,6 +58,7 @@ namespace MSAccessLib
             
             db.TableDefs.Append(dt);
             dt.RefreshLink();
+            return dt;
         }
 
         #endregion
@@ -68,24 +70,26 @@ namespace MSAccessLib
             var logger = ctx.Logger;
             var filter = ctx.TableFilter;
 
-            var tables = externalDb.TableDefs;
+            var srcTables = externalDb.TableDefs;
+            var destTblNames = db.TableDefs.GetTableNames();
             int cnt = 0;
-            int total = tables.Count;
+            int total = srcTables.Count;
             logger.LogInformation(string.Format("Importing total number of tables: {0}", total));
-            foreach (TableDef st in tables)
+            foreach (TableDef st in srcTables)
             {
-                if (!filter(st))
+                if (!filter(st) || destTblNames.Contains(ctx.GetNewTableName(st)))
                 {
                     logger.LogInformation(string.Format("Skipping {0} of {1} table: {2}", 
                         ++cnt, total, st.Name));
                     continue;
                 }
                 logger.LogInformation(string.Format("Importing {0} of {1} table", ++cnt, total));
-                db.ImportTable(st, externalDb, ctx);
+                var nt = db.ImportTable(st, externalDb, ctx);
+                destTblNames.Add(nt.Name);
             }
         }
 
-        public static void ImportTable(this Database db, TableDef externalTable, Database externalDb, Context ctx)
+        public static TableDef ImportTable(this Database db, TableDef externalTable, Database externalDb, Context ctx)
         {
             var logger = ctx.Logger;
 
@@ -102,6 +106,7 @@ namespace MSAccessLib
             // duplicate indexes
             logger?.LogInformation(string.Format("Copying indexes for table: {0}", externalTable.Name));
             dt.CopyIndexes(externalTable, ctx);
+            return dt;
         }
 
         public static void CopyIndexes(this TableDef dt, TableDef externalTable, Context ctx)
@@ -139,5 +144,12 @@ namespace MSAccessLib
 
         #endregion
 
+        public static HashSet<string> GetTableNames(this TableDefs tables)
+        {
+            var l = new HashSet<string>();
+            foreach (TableDef t in tables)
+                l.Add(t.Name);
+            return l;
+        }
     }
 }

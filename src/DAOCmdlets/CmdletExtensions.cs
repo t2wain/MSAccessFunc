@@ -1,41 +1,67 @@
-﻿using MSAccessLib;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.Office.Interop.Access.Dao;
+using MSAccessLib;
 using System.Management.Automation;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DAOCmdlets
 {
     public static class CmdLetExtensions
     {
-        public static Context BuildContext(this Cmdlet cmd, string cnnstring, ScriptBlock tableFilter, ScriptBlock queryFilter)
+        public static Context BuildContext(this Cmdlet cmd, ScriptBlock? tableFilter = null, 
+            ScriptBlock? queryFilter = null, ScriptBlock? getTableName = null)
         {
-            return new Context()
+            Predicate<TableDef> tf = tableFilter switch
             {
-                TableFilter = t => {
-                    foreach (var r in tableFilter.Invoke(t))
+                null => t => true,
+                _ => t =>
                     {
-                        var b = (bool)r.BaseObject;
-                        return b;
+                        // redirect a .net predicate to a Powershell scriptblock
+                        foreach (var r in tableFilter.Invoke(t))
+                        {
+                            var b = (bool)r.BaseObject;
+                            return b;
+                        }
+                        return false;
                     }
-                    return false;
-                },
-                QueryFilter = q => {
+            };
+
+            Predicate<QueryDef> qf = queryFilter switch
+            {
+                null => q => true,
+                _ => q =>
+                {
+                    // redirect a .net predicate to a Powershell scriptblock
                     foreach (var r in queryFilter.Invoke(q))
                     {
                         var b = (bool)r.BaseObject;
                         return b;
                     }
                     return false;
-                },
-                Writer = new CmdletTextWriter(cmd),
-                Logger = new CmdletLogger(cmd),
-                IsMSAccessDB =
-                    cnnstring.Contains(".accdb")
-                    || cnnstring.Contains(".mdb")
+                }
+            };
 
+            Func<TableDef, string> gn = getTableName switch
+                {
+                    null => t => t.Name,
+                    _ => t =>
+                        {
+                            foreach (var r in getTableName.Invoke(t))
+                            {
+                                var n = (string)r.BaseObject;
+                                return n;
+                            }
+                            return t.Name;
+                        }
+                };
+
+            return new Context()
+            {
+                TableFilter = tf,
+                QueryFilter = qf,
+                GetNewTableName = gn,
+                // redirect TextWriter methods to Cmdlet WriteObject method
+                Writer = new CmdletTextWriter(cmd),
+                // redirect ILogger methods to Cmdlet Write{XXX} methods
+                Logger = new CmdletLogger(cmd),
             };
         }
     }

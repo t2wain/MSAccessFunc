@@ -177,7 +177,7 @@ namespace MSAccessApp
             {
                 Logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("DSN Linking"),
                 TableFilter = t => t.Name.StartsWith("VW.C_"),
-                GetLinkTableName = t => t.Name.Replace("VW.", ""),
+                GetNewTableName = t => t.Name.Replace("VW.", ""),
                 IsSavePwdWithLinkTable = true
             };
 

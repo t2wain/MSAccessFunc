@@ -1,9 +1,14 @@
-﻿using System.Management.Automation;
+﻿using MSAccessLib;
+using System.Management.Automation;
 using System.Text;
 
 namespace DAOCmdlets
 {
-    public class CmdletTextWriter : TextWriter, IDisposable
+    /// <summary>
+    /// This class wraps the cmdlet and redirects standard 
+    /// TextWriter methods to standard Cmdlet WriteObject medthod.
+    /// </summary>
+    public class CmdletTextWriter : TextWriter, IDisposable2
     {
         Cmdlet _cmd = null!;
         StringBuilder _sb = null!;
@@ -18,6 +23,9 @@ namespace DAOCmdlets
 
         public override void Write(char value)
         {
+            // Cache each char until encounter a new line character
+            // then write out the text as a line item similar to
+            // WriteLine.
             if (value == '\r')
                 return;
             else if (value == '\n' && _sb.Length > 0)
@@ -36,12 +44,13 @@ namespace DAOCmdlets
         {
             if (_sb.Length > 0)
             {
+                // write out the text to Powershell pipeline
                 _cmd.WriteObject(_sb.ToString());
                 _sb.Clear();
             }
         }
 
-        public void Dispose()
+        void IDisposable2.Dispose()
         {
             base.Dispose();
             _cmd = null!;

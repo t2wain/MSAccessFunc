@@ -1,14 +1,14 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using MSAccessLib;
 using System.Management.Automation;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DAOCmdlets
 {
-    public class CmdletLogger : ILogger, IDisposable
+    /// <summary>
+    /// This class wraps the cmdlet and redirects standard 
+    /// ILogger log methods to standard Cmdlet Write{XXX} methods.
+    /// </summary>
+    public class CmdletLogger : ILogger, IDisposable2
     {
         Cmdlet _cmd = null!;
 
@@ -46,7 +46,7 @@ namespace DAOCmdlets
             }
         }
 
-        public void Dispose()
+        void IDisposable2.Dispose()
         {
             _cmd = null!;
         }
