@@ -1,4 +1,5 @@
 ﻿using Microsoft.Office.Interop.Access.Dao;
+using Microsoft.VisualBasic;
 
 namespace MSAccessLib
 {
@@ -46,5 +47,19 @@ namespace MSAccessLib
                 );
 
         #endregion
+
+        public Database? OpenDBWithConnString(string cnnString, string pwd = "") => cnnString switch
+            {
+                var c when c.StartsWith("ODBC;") => OpenODBC(c),
+                var c when c.Contains(".xls") => OpenExcel(c),
+                var c when c.Contains(".accdb") || c.Contains(".mdb") => OpenAccessDB(c, pwd),
+                _ => OpenDB("", cnnString)
+            };
+
+        public void PrintDatabase(string cnnString, Context ctx)
+        {
+            var db = OpenDBWithConnString(cnnString);
+            db?.PrintAll(ctx);
+        }
     }
 }

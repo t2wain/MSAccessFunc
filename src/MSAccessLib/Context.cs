@@ -4,7 +4,7 @@ using Microsoft.Office.Interop.Access.Dao;
 
 namespace MSAccessLib
 {
-    public record Context
+    public record Context : IDisposable
     {
         public Context()
         {
@@ -28,5 +28,16 @@ namespace MSAccessLib
         public bool IsMSAccessDB { get; set; }
         public Func<TableDef, string> GetLinkTableName { get; set; }
         public bool IsSavePwdWithLinkTable { get; set; }
+
+        public void Dispose()
+        {
+            if (Logger is IDisposable l)
+                l.Dispose();
+            Logger = null!;
+
+            if (Writer is IDisposable w)
+                w.Dispose();
+            Writer = null!;
+        }
     }
 }

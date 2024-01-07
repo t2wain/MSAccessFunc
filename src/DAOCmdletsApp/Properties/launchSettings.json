@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    },
+    "DAOCmdletsApp": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files (x86)\\PowerShell\\7\\pwsh.exe",
+      "commandLineArgs": "-NoProfile -NoExit -Command \"Import-Module .\\DAOCmdlets.dll\""
+    }
+  }
+}
