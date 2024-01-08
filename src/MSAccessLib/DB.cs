@@ -81,5 +81,25 @@ namespace MSAccessLib
                 destDB = null;
             }
         }
+
+        public void ImportTables(string srcCnnString, string destCnnString, Context ctx)
+        {
+            Database? srcDB = null;
+            Database? destDB = null;
+
+            try
+            {
+                destDB = OpenDBWithConnString(destCnnString);
+                srcDB = OpenDBWithConnString(srcCnnString);
+                destDB?.ImportTables(srcDB!, ctx);
+            }
+            finally
+            {
+                srcDB?.Close();
+                destDB?.Close();
+                srcDB = null;
+                destDB = null;
+            }
+        }
     }
 }

@@ -15,7 +15,7 @@ namespace MSAccessLib
             Logger = NullLogger.Instance;
             HideFieldProperty = false;
             IsMSAccessDB = false;
-            GetNewTableName = t => t.Name;
+            GetDestTableName = t => t.Name;
             IsSavePwdWithLinkTable = false;
         }
 
@@ -26,7 +26,7 @@ namespace MSAccessLib
         public ILogger Logger { get; set; } = null!;
         public bool HideFieldProperty { get; set; }
         public bool IsMSAccessDB { get; set; }
-        public Func<TableDef, string> GetNewTableName { get; set; }
+        public Func<TableDef, string> GetDestTableName { get; set; }
         public bool IsSavePwdWithLinkTable { get; set; }
 
         public void Dispose()

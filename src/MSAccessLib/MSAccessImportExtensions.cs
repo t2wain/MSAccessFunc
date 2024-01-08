@@ -24,7 +24,7 @@ namespace MSAccessLib
             var cnnstr = externalDb.GetConnectString();
             foreach (TableDef st in srcTables)
             {
-                if (!filter(st) || destTblNames.Contains(ctx.GetNewTableName(st)))
+                if (!filter(st) || destTblNames.Contains(ctx.GetDestTableName(st)))
                 {
                     logger.LogInformation(string.Format("Skipping {0} of {1} table: {2}",
                         ++cnt, total, st.Name));
@@ -39,7 +39,7 @@ namespace MSAccessLib
         public static TableDef LinkToTable(this Database db, TableDef externalTable, Database externalDb, Context ctx)
         {
             var logger = ctx.Logger;
-            var gn = ctx.GetNewTableName;
+            var gn = ctx.GetDestTableName;
 
             logger.LogInformation(string.Format("Linking table: {0}", externalTable.Name));
             var cnnstr = externalDb.GetConnectString();
@@ -77,7 +77,7 @@ namespace MSAccessLib
             logger.LogInformation(string.Format("Importing total number of tables: {0}", total));
             foreach (TableDef st in srcTables)
             {
-                if (!filter(st) || destTblNames.Contains(ctx.GetNewTableName(st)))
+                if (!filter(st) || destTblNames.Contains(ctx.GetDestTableName(st)))
                 {
                     logger.LogInformation(string.Format("Skipping {0} of {1} table: {2}", 
                         ++cnt, total, st.Name));

@@ -8,6 +8,10 @@ This library provide many methods using Microsoft DAO library
 
 Please view the examples and unit tests on ways to use the library.
 
+## Custom PowerShell module for DAO
+
+This project also implements a custom PowerShell module with 3 cmdlets.
+
 ## Why use Microsoft Access?
 
 I often have a need to analyze data of various remote Oracle databases. For complex task, I prefer to use Microsoft Access application to perform the analysis by either linking or importing tables from remote database into Access. Access has the following advantages:

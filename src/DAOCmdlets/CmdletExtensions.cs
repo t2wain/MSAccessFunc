@@ -7,7 +7,7 @@ namespace DAOCmdlets
     public static class CmdLetExtensions
     {
         public static Context BuildContext(this Cmdlet cmd, ScriptBlock? tableFilter = null, 
-            ScriptBlock? queryFilter = null, ScriptBlock? getTableName = null)
+            ScriptBlock? queryFilter = null, ScriptBlock? getDestTableName = null)
         {
             Predicate<TableDef> tf = tableFilter switch
             {
@@ -39,12 +39,12 @@ namespace DAOCmdlets
                 }
             };
 
-            Func<TableDef, string> gn = getTableName switch
+            Func<TableDef, string> gn = getDestTableName switch
                 {
                     null => t => t.Name,
                     _ => t =>
                         {
-                            foreach (var r in getTableName.Invoke(t))
+                            foreach (var r in getDestTableName.Invoke(t))
                             {
                                 var n = (string)r.BaseObject;
                                 return n;
@@ -57,7 +57,7 @@ namespace DAOCmdlets
             {
                 TableFilter = tf,
                 QueryFilter = qf,
-                GetNewTableName = gn,
+                GetDestTableName = gn,
                 // redirect TextWriter methods to Cmdlet WriteObject method
                 Writer = new CmdletTextWriter(cmd),
                 // redirect ILogger methods to Cmdlet Write{XXX} methods

@@ -1,0 +1,3 @@
+﻿## PowerShell Module for the DAO Utility Methods
+
+The purpose of this do-nothing Console app is to reference the "DAOCmdlets" project that implements the custom PowerShell module. When this Console app project is compiled, all the dependencies required by the custom PowerShell module will be collected together in the output folder. Please review the script file "Examples.ps1" on how to use the cmdlets. Note, depend on the version of the DAO libraries installed, either 32-bit or 64-bit, you must also use the corresponding PowerShell version that matches.

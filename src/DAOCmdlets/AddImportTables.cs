@@ -4,10 +4,10 @@ using System.Management.Automation;
 namespace DAOCmdlets
 {
     /// <summary>
-    /// Link tables from a source DB to a destination DB.
+    /// Import tables from the source DB to a destination DB.
     /// </summary>
-    [Cmdlet(VerbsCommon.Add, "DaoLinkTables")]
-    public class AddLinkTables : Cmdlet, IDisposable
+    [Cmdlet(VerbsCommon.Add, "DaoImportTables")]
+    public class AddImportTables : Cmdlet, IDisposable
     {
         DB _dbUtil = null!;
         Context _ctx = null!;
@@ -23,10 +23,7 @@ namespace DAOCmdlets
         [Parameter(HelpMessage = "Password of source DB")]
         public string SrcPassword { get; set; } = "";
 
-        [Parameter(HelpMessage = "Save source DB password with linked tables in destination DB")]
-        public SwitchParameter SavePassword { get; set; }
-
-        [Parameter(HelpMessage = "Given a source TableDef and return true for selected table")]
+        [Parameter(HelpMessage = "Given a source TableDef and return true for selected TableDef")]
         public ScriptBlock? TableFilter { get; set; }
 
         [Parameter(HelpMessage = "Given a source TableDef and return a name for destination TableDef")]
@@ -35,21 +32,17 @@ namespace DAOCmdlets
         protected override void BeginProcessing()
         {
             _dbUtil = new DB();
-            _ctx = this.BuildContext(TableFilter, null, GetDestTableName) with
-            {
-                IsSavePwdWithLinkTable = SavePassword
-            };
+            _ctx = this.BuildContext(TableFilter, null, GetDestTableName);
         }
 
         protected override void ProcessRecord() =>
-            _dbUtil.LinkTables(SrcConnectString, DestConnectString, _ctx);
+            _dbUtil.ImportTables(SrcConnectString, DestConnectString, _ctx);
 
         protected override void EndProcessing() =>
             Dispose();
 
         protected override void StopProcessing() =>
             Dispose();
-
 
         public void Dispose()
         {
@@ -59,6 +52,5 @@ namespace DAOCmdlets
             _ctx = null!;
             _dbUtil = null!;
         }
-
     }
 }
