@@ -7,6 +7,7 @@ namespace DAOCmdlets
     /// Write out information about the database.
     /// </summary>
     [Cmdlet(VerbsData.Out, "DaoDbInfo")]
+    [OutputType(typeof(string))]
     public class OutDbInfo : Cmdlet, IDisposable
     {
         DB _dbUtil = null!;
@@ -16,10 +17,10 @@ namespace DAOCmdlets
             HelpMessage = "Valid DAO connection string of a DB")]
         public string ConnectString { get; set; } = null!;
 
-        [Parameter(HelpMessage = "Given a TableDef and return true for selected TableDef")]
+        [Parameter(HelpMessage = "Given a TableDef and return true for selected TableDef ( {param($t) $true} )")]
         public ScriptBlock? TableFilter { get; set; }
 
-        [Parameter(HelpMessage = "Given a QueryDef and return true for selected QueryDef")]
+        [Parameter(HelpMessage = "Given a QueryDef and return true for selected QueryDef ( {param($q) $true} )")]
         public ScriptBlock? QueryFilter { get; set; }
 
         [Parameter(HelpMessage = "Do not write out empty properties.")]
@@ -52,7 +53,7 @@ namespace DAOCmdlets
 
         public void Dispose()
         {
-            _ctx?.Writer?.Flush();
+            try { _ctx?.Writer?.Flush(); } catch { }
             _ctx?.Dispose();
             _dbUtil?.Dispose();
             _ctx = null!;

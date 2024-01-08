@@ -48,10 +48,10 @@ namespace MSAccessLib
 
         public Database? OpenDBWithConnString(string cnnString, string pwd = "") => cnnString switch
             {
-                var c when c.StartsWith("ODBC;") => OpenODBC(c),
+                var c when c.StartsWith("ODBC;") => OpenODBC(c, true),
                 var c when c.Contains(".xls") => OpenExcel(c),
                 var c when c.Contains(".accdb") || c.Contains(".mdb") => OpenAccessDB(c, pwd),
-                _ => OpenDB("", cnnString)
+                _ => OpenDB("", cnnString, true)
             };
 
         #endregion

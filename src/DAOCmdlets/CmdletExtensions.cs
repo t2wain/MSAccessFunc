@@ -6,6 +6,17 @@ namespace DAOCmdlets
 {
     public static class CmdLetExtensions
     {
+        /// <summary>
+        /// A convenience method (1) to wrap the PowerShell ScriptBlock objects inside 
+        /// the .NET Predicate functions of the Context object, and (2) to wrap the
+        /// given cmdlet inside the CmdletLogger and CmdletTextWriter objects 
+        /// that implement ILogger and TextWriter interfaces.
+        /// </summary>
+        /// <param name="cmd">The Cmdlet object</param>
+        /// <param name="tableFilter">Given a TableDef return true for selected TableDef</param>
+        /// <param name="queryFilter">Given a QueryDef return true for selected QueryDef</param>
+        /// <param name="getDestTableName">Given a TableDef return a new name for TableDef</param>
+        /// <returns></returns>
         public static Context BuildContext(this Cmdlet cmd, ScriptBlock? tableFilter = null, 
             ScriptBlock? queryFilter = null, ScriptBlock? getDestTableName = null)
         {

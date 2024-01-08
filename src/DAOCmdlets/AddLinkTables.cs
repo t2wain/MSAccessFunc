@@ -12,11 +12,11 @@ namespace DAOCmdlets
         DB _dbUtil = null!;
         Context _ctx = null!;
 
-        [Parameter(Mandatory = true, Position = 0,
+        [Parameter(Mandatory = true,
             HelpMessage = "Valid DAO connection string of a destination Access DB.")]
         public string DestConnectString { get; set; } = null!;
 
-        [Parameter(Mandatory = true, Position = 1,
+        [Parameter(Mandatory = true,
             HelpMessage = "Valid DAO connection string of a source DB")]
         public string SrcConnectString { get; set; } = null!;
 
@@ -26,10 +26,10 @@ namespace DAOCmdlets
         [Parameter(HelpMessage = "Save source DB password with linked tables in destination DB")]
         public SwitchParameter SavePassword { get; set; }
 
-        [Parameter(HelpMessage = "Given a source TableDef and return true for selected table")]
+        [Parameter(HelpMessage = "Given a source TableDef and return true for selected TableDef ( {param($t) $true} )")]
         public ScriptBlock? TableFilter { get; set; }
 
-        [Parameter(HelpMessage = "Given a source TableDef and return a name for destination TableDef")]
+        [Parameter(HelpMessage = "Given a source TableDef and return a new name for destination TableDef ( {param($t) $t.Name} )")]
         public ScriptBlock? GetDestTableName { get; set; }
 
         protected override void BeginProcessing()
