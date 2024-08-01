@@ -29,6 +29,18 @@ Add-DaoImportTables -SrcConnectString "c:\dev\Routing.accdb" -DestConnectString 
 Add-DaoLinkTables -SrcConnectString "c:\dev\Routing.accdb" -DestConnectString "c:\dev\RoutingLink.accdb" `
 	-InformationAction Continue -TableFilter {param($t) $t.Attributes -eq 0}
 
+# Write out information of the SPELREF Oracle Schema.
+Out-DaoDbInfo -ConnectString "ODBC;FILEDSN=C:\devgit\Data\XXX\XXXSPELREF.dsn" `
+    -TableFilter {param($t) $t.Name -match "^XXX_XXXELREF\."} `
+    -HideFieldProperty -HideEmptyProperty -InformationAction Continue 
+
+# Link tables in SPELREF Oracle Schema to destination MSAccess DB.
+Add-DaoLinkTables -SrcConnectString "ODBC;FILEDSN=C:\devgit\Data\XXX\XXXSPELREF.dsn" `
+    -DestConnectString "c:\devgit\Data\XXX\XXX_SPELREF.accdb" `
+    -TableFilter {param($t) $t.Name -match "^XXX_XXXELREF\."} `
+    -GetDestTableName {param($t) $t.Name.Replace("XXX_XXXELREF.", "")} `
+    -SavePassword -InformationAction Continue
+
 ```
 
 ## ILogger and TextWriter vs. PowerShell WriteXXX Methods
