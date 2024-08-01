@@ -142,6 +142,14 @@ namespace MSAccessLib
             }
         }
 
+        public static bool IsExcel(this Database db) => db.Connect.Contains(".xls");
+
+        public static bool IsMsAccess(this Database db)
+        {
+            var cnnStr = db.Connect;
+            return string.IsNullOrWhiteSpace(cnnStr) || cnnStr.Contains(".accdb") || cnnStr.Contains(".mdb");
+        }
+
         #endregion
 
         #region TableDef

@@ -16,6 +16,12 @@ namespace MSAccessLib
             var logger = ctx.Logger;
             var filter = ctx.TableFilter;
 
+            var isMsAccess = db.IsMsAccess();
+            if (!db.IsMsAccess())
+            {
+                logger.LogInformation("Destination DB is NOT an MSAccess database. Linking table to a non-MSAccess DB is not possible.");
+            }
+
             var srcTables = externalDb.TableDefs;
             var destTblNames = db.TableDefs.GetTableNames();
             int cnt = 0;
@@ -24,6 +30,8 @@ namespace MSAccessLib
             var cnnstr = externalDb.GetConnectString();
             foreach (TableDef st in srcTables)
             {
+                var filterVal = filter(st);
+                var tblName = ctx.GetDestTableName(st);
                 if (!filter(st) || destTblNames.Contains(ctx.GetDestTableName(st)))
                 {
                     logger.LogInformation(string.Format("Skipping {0} of {1} table: {2}",
@@ -38,6 +46,9 @@ namespace MSAccessLib
 
         public static TableDef LinkToTable(this Database db, TableDef externalTable, Database externalDb, Context ctx)
         {
+            if (!db.IsMsAccess())
+                throw new Exception("Link table is not supported!");
+
             var logger = ctx.Logger;
             var gn = ctx.GetDestTableName;
 
@@ -134,11 +145,15 @@ namespace MSAccessLib
                 di.IgnoreNulls = si.IgnoreNulls;
                 di.Required = si.Required;
                 di.Clustered = si.Clustered;
-                dt.Indexes.Append(di);
-                if (di.Primary)
-                    logger.LogInformation(string.Format("Append primary index: {0}", di.Name));
-                else
-                    logger.LogTrace(string.Format("Append table index: {0}", di.Name));
+                try
+                {
+                    dt.Indexes.Append(di);
+                    if (di.Primary)
+                        logger.LogInformation(string.Format("Append primary index: {0}", di.Name));
+                    else
+                        logger.LogTrace(string.Format("Append table index: {0}", di.Name));
+                }
+                catch { logger.LogInformation(string.Format("Skip importing index: {0}", di.Name)); }
             }
         }
 

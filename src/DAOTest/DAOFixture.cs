@@ -49,6 +49,8 @@ namespace DAOTest
 
         public string OdbcDsnless => _configRoot.GetConnectionString("OdbcDsnless2")!;
 
+        public string Excel => _configRoot.GetConnectionString("Excel")!;
+
         public (string FileName, string Pwd) OdbcDsnFile 
         {
             get 

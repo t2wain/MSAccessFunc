@@ -19,15 +19,24 @@ namespace DAOTest
             try {
                 var cnnstr = _fxt.MSAccess;
                 db = _fxt.DB.OpenAccessDB(cnnstr.FilePath, cnnstr.PWD);
+                var res = db?.IsMsAccess();
                 Assert.NotNull(db);
             }
             finally { db?.Close(); }
         }
 
         [Fact]
-        public void Should_open_ODBC_Excel()
+        public void Should_open_Excel()
         {
-
+            Database? db = null;
+            try
+            {
+                var cnnstr = _fxt.Excel;
+                db = _fxt.DB.OpenExcel(cnnstr);
+                var res = db?.IsMsAccess();
+                Assert.NotNull(db);
+            }
+            finally { db?.Close(); }
         }
 
         [Fact]
@@ -38,6 +47,7 @@ namespace DAOTest
             {
                 var cnnstr = _fxt.OdbcDsn;
                 db = _fxt.DB.OpenODBC(Connect.DSN(cnnstr.DSN, cnnstr.PWD));
+                var res = db?.IsMsAccess();
                 Assert.NotNull(db);
             }
             finally { db?.Close(); }

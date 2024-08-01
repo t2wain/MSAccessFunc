@@ -33,13 +33,17 @@ namespace MSAccessApp
 
         public void Run()
         {
-            int testNo = 9;
+            int testNo = 10;
 
             var dsnName = _cfg["OdbcDsn"]!;
+            var odbcDsnFile = _cfg["OdbcDsnInfoFile"]!;
             var dsnLinkDbFile = _cfg["OdbcMSAccessLinkFile"]!;
             var dbFile = _cfg["MSAccessFile"]!;
             var dbLinkFile = _cfg["MSAccessLinkFile"]!;
             var dbImportFile = _cfg["MSAccessImportFile"]!;
+
+            var srcTableFilter = _cfg["SrcTableFilter"]!;
+            var removeSrcTablePrefix = _cfg["RemoveSrcTablePrefix"]!;
 
             switch (testNo)
             {
@@ -87,6 +91,10 @@ namespace MSAccessApp
                 case 9:
                     // import tables from an Access db to another Access db
                     ImportAccess(dbFile, dbImportFile);
+                    break;
+                case 10:
+                    // import tables from an Access db to another Access db
+                    LinkFileDsnTables(odbcDsnFile, dsnLinkDbFile, srcTableFilter, removeSrcTablePrefix);
                     break;
             }
         }
@@ -199,6 +207,37 @@ namespace MSAccessApp
             }
         }
 
+        protected void LinkFileDsnTables(string dsnFileName, string dsnLinkDbFile, 
+            string srctableFilter, string removeSrcTablePrefix)
+        {
+            if (!File.Exists(dsnFileName))
+                return;
+
+            var ctx = _ctx with
+            {
+                Logger = _provider.GetRequiredService<ILoggerFactory>().CreateLogger("DSN Linking"),
+                TableFilter = t => t.Name.StartsWith(srctableFilter),
+                GetDestTableName = t => t.Name.Replace(removeSrcTablePrefix, ""),
+                IsSavePwdWithLinkTable = true
+            };
+
+            using var t = new DB();
+            if (File.Exists(dsnLinkDbFile))
+                File.Delete(dsnLinkDbFile);
+            Database? destDB = null;
+            Database? srcDB = null;
+            try
+            {
+                destDB = t.CreateMSAccess(dsnLinkDbFile);
+                srcDB = t.OpenODBC(Connect.DSNFile(dsnFileName));
+                destDB?.LinkToTables(srcDB!, ctx);
+            }
+            finally
+            {
+                destDB?.Close();
+                srcDB?.Close();
+            }
+        }
         #endregion
 
         #region Common
